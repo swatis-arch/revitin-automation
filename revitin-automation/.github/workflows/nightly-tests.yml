@@ -1,0 +1,77 @@
+name: Nightly Playwright Automation
+
+# 1. TRIGGERS: When the workflow runs
+on:
+  schedule:
+    # Uses standard POSIX cron syntax (Minute Hour Day-of-month Month Day-of-week)
+    # '0 0 * * *' triggers every midnight UTC (5:30 AM IST).
+    # If you want 11:00 PM IST, set it to 17:30 UTC: '30 17 * * *'
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Adds a "Run workflow" manual button in the GitHub UI for on-demand runs
+
+jobs:
+  test:
+    name: Run Revitin Tests & Report
+    timeout-minutes: 60
+    runs-on: ubuntu-latest # GitHub-hosted clean Linux virtual machine
+
+    steps:
+      # Step A: Clones your repository into the runner runner workspace
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Step B: Installs Node.js and caches node_modules to speed up subsequent runs
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      # Step C: Performs a clean, reproducible npm package install based on package-lock.json
+      - name: Install Dependencies
+        run: npm ci
+
+      # Step D: Installs ONLY the Chromium binary and required Linux OS shared libraries
+      - name: Install Playwright Browsers & OS Deps
+        run: npx playwright install --with-deps chromium
+
+      # Step E: Executes tests using 1 worker and desktop Chromium project
+      # 'continue-on-error: true' ensures subsequent reporting steps run even if a test assertion fails
+      - name: Run Playwright Tests
+        run: npx playwright test --project=chromium --workers=1
+        continue-on-error: true
+
+      # Step F: Archives the Playwright HTML report folder on GitHub so it can be downloaded
+      - name: Upload Playwright Report Artifact
+        uses: actions/upload-artifact@v4
+        if: always() # Executes whether tests pass or fail
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+      # Step G: Authenticates with SMTP and sends the email alert
+      - name: Send Email Report to You and Manager
+        uses: dawidd6/action-send-mail@v3
+        if: always()
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          # References the encrypted repository secrets you define in GitHub Settings
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: 'Revitin Automation Report - ${{ job.status }} (${{ github.run_id }})'
+          to: 'your-email@example.com,manager-email@example.com'
+          from: 'Revitin QA Bot <${{ secrets.MAIL_USERNAME }}>'
+          body: |
+            Hi Team,
+
+            The nightly automated Playwright test run for Revitin has completed.
+
+            Job Status: ${{ job.status }}
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            
+            View detailed test logs and artifacts here:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
