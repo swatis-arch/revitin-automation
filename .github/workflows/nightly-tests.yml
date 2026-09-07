@@ -51,18 +51,18 @@ jobs:
           retention-days: 14
 
       # Step G: Authenticates with SMTP and sends the email alert
-      - name: Send Email Report to You and Manager
-        uses: dawidd6/action-send-mail@v3
-        if: always()
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          secure: true
-          # References the encrypted repository secrets you define in GitHub Settings
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
-          subject: 'Revitin Automation Report - ${{ job.status }} (${{ github.run_id }})'
-          to: 'your-email@example.com,manager-email@example.com'
+#      - name: Send Email Report to You and Manager
+#        uses: dawidd6/action-send-mail@v3
+#        if: always()
+#        with:
+#          server_address: smtp.gmail.com
+#          server_port: 465
+#          secure: true
+#          # References the encrypted repository secrets you define in GitHub Settings
+#          username: ${{ secrets.MAIL_USERNAME }}
+#          password: ${{ secrets.MAIL_PASSWORD }}
+#          subject: 'Revitin Automation Report - ${{ job.status }} (${{ github.run_id }})'
+#          to: 'your-email@example.com,manager-email@example.com'
           from: 'Revitin QA Bot <${{ secrets.MAIL_USERNAME }}>'
           body: |
             Hi Team,
